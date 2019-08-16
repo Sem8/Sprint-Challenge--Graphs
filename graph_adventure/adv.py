@@ -1,6 +1,10 @@
 from room import Room
 from player import Player
 from world import World
+from util import Stack
+from util import Queue
+
+from helper_func import opposite_direction, unexplored_path
 
 import random
 
@@ -23,6 +27,51 @@ player = Player("Name", world.startingRoom)
 # FILL THIS IN
 traversalPath = ['n', 's']
 
+# when visited is full, the loop stops and the maze is explored
+visited = {}
+
+while len(visited) < len(roomGraph):
+    # Get the current room and it's exits
+    room_id = player.currentRoom.id
+    room_exits = player.currentRoom.getExits()
+
+    # If current room is not in visited add it to visited
+    if room_id not in visited:
+        visited[room_id] = { points: '?' for points in room_exits }
+
+    # Get current room exits
+    uncharted = [point for point in visited[room_id] if visited[room_id][point] == '?']
+
+    # If uncharted is not an empty list explore an unexplored room
+    if len(uncharted) > 0:
+        # make a random index to go to the next unexplored room
+        next_room_index = random.randint(0, len(uncharted) - 1)
+        next_point = uncharted[next_room_index]
+
+        # move to the uncharted room
+        player.travel(next_point)
+
+        # Add the travel destinatio to the main path
+        traversalPath.append(next_point)
+
+        # Next room is now known, set it for previous room's direction index
+        next_room_id = player.currentRoom.id
+        visited[room_id][next_point] = next_room_id
+
+        # If next room is not in visited, add it
+        if next_room_id not in visited:
+            next_room_exits = player.currentRoom.getExits()
+            visited[next_room_id] = { points: '?' for points in next_room_exits }
+
+        # The room we were in before is now the opposite direction of the current room
+        opposite_point = opposite_direction(next_point)
+        visited[next_room_id][opposite_point] = room_id
+
+    # Else find way back to the nearest unexplored room using breadth first search
+    else:
+        traversalPath += unexplored_path(visited, room_id, player)
+
+
 
 # TRAVERSAL TEST
 visited_rooms = set()
@@ -38,7 +87,7 @@ else:
     print("TESTS FAILED: INCOMPLETE TRAVERSAL")
     print(f"{len(roomGraph) - len(visited_rooms)} unvisited rooms")
 
-
+print(len(traversalPath))
 
 #######
 # UNCOMMENT TO WALK AROUND
